@@ -14,6 +14,8 @@
  */
 
 
+#include <LiquidCrystal_I2C.h>
+#include <Wire.h> 
 #include <EEPROM.h>
 #include <Servo.h>
 #define BUTTON_ADD    8
@@ -25,12 +27,83 @@
 
 
 
-byte laserLevel;
+byte laserLevel,laserLevelPrev;
 byte dataToPort;
 #ifdef TURBINE_PIN
-  byte turbineLevel;
+  bool turbineEnable=false,turbineEnablePrev;
+  byte turbineLevel,turbineLevelPrev;
   Servo turbine;
 #endif
+LiquidCrystal_I2C LCD(0x27,16,2);
+
+
+
+void readButtons(void){
+  if(!digitalRead(BUTTON_ADD)&&laserLevel<255){
+    laserLevel++;
+    EEPROM.write(10,laserLevel);
+    printLCD();
+    delay(100);
+  }
+  if(!digitalRead(BUTTON_RMV)&&laserLevel>0){
+    laserLevel--;
+    EEPROM.write(10,laserLevel);
+    printLCD();
+    delay(100);
+  }
+}
+
+
+
+void printLCD(void){
+  lcd.setCursor(13,0);
+  if(laserLevel>=100){
+    lcd.print(laserLevel);
+  }
+  else if(laserLevel>=10){
+    lcd.print(" ");
+    lcd.print(laserLevel);
+  }
+  else{
+    lcd.print("  ");
+    lcd.print(laserLevel);
+  }
+  #ifdef TURBINE_PIN
+    lcd.setCursor(13,1);
+    if(turbineEnable){
+      if(turbineLevel>=100){
+        lcd.print(turbineLevel);
+      }
+      else if(turbineLevel>=10){
+        lcd.print(" ");
+        lcd.print(turbineLevel);
+      }
+      else{
+        lcd.print("  ");
+        lcd.print(turbineLevel);
+      }
+    }
+    else{
+      lcd.print("OFF");
+    }
+  #endif
+}
+
+
+
+void writeActuators(void){
+  #ifdef MIRROR_BITS
+    dataToPort = ( laserLevel * 0x0202020202ULL & 0x010884422010ULL ) % 1023;
+  #else
+    dataToPort = laserLevel;
+  #endif
+  PORTD = dataToPort;
+  #ifdef TURBINE_PIN
+    if(turbineEnable) turbine.writeMicroseconds(map(turbineLevel,0,255,1000,2000));
+    else turbine.writeMicroseconds(1000);
+  #endif
+}
+
 
 
 void setup(){
@@ -43,31 +116,29 @@ void setup(){
     turbine.attach(TURBINE_PIN);
     turbineLevel = EEPROM.read(20);
   #endif
+  LCD.init();
+  LCD.backlight();
+  lcd.setCursor(0,0);
+  lcd.print(" LASER CONTROL  ");
+  lcd.setCursor(0,1);
+  lcd.print("LaCajaMakerSpace");
+  delay(2500);
+  lcd.setCursor(0,0);
+  lcd.print("> LASER:     ---");
+  lcd.setCursor(0,1);
+  lcd.print("  TURBINE:   OFF");
   
 }
 
 void loop(){
-
-  if(!digitalRead(BUTTON_ADD)&&laserLevel<255){
-    laserLevel++;
-    EEPROM.write(10,laserLevel);
-    delay(100);
-  }
-  if(!digitalRead(BUTTON_RMV)&&laserLevel>0){
-    laserLevel--;
-    EEPROM.write(10,laserLevel);
-    delay(100);
-  }
   
-  #ifdef MIRROR_BITS
-    dataToPort = ( laserLevel * 0x0202020202ULL & 0x010884422010ULL ) % 1023;
-  #else
-    dataToPort = laserLevel;
-  #endif
-  PORTD = dataToPort;
+  readButtons();
   
-  #ifdef TURBINE_PIN
-    turbine.writeMicroseconds(map(turbineLevel,0,255,1000,2000));
-  #endif
+  if( (laserLevel!=laserLevelPrev) || (turbineLevel!=turbineLevelPrev) || (turbineEnable!=turbineEnablePrev) ){
+    writeActuators();
+    laserLevelPrev=laserLevel;
+    turbineLevelPrev=turbineLevel;
+    turbineEnablePrev=turbineEnable;
+  }
   
 }
