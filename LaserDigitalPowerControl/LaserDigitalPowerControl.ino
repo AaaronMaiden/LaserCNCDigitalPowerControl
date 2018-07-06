@@ -55,7 +55,7 @@ void readButtons(void){
 
 
 
-void printLCD(void){
+void writeLCD(void){
   lcd.setCursor(13,0);
   if(laserLevel>=100){
     lcd.print(laserLevel);
