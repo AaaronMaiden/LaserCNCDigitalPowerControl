@@ -22,7 +22,9 @@
 #define BUTTON_ENT    9
 #define BUTTON_RMV    10
 //#define TURBINE_PIN   11
+//#define INVERT_ANALOG_SIGNAL
 #define MIRROR_BITS
+
 
 
 
@@ -92,16 +94,24 @@ void writeLCD(void){
 
 
 void writeActuators(void){
+  
   #ifdef MIRROR_BITS
     dataToPort = ( laserLevel * 0x0202020202ULL & 0x010884422010ULL ) % 1023;
   #else
     dataToPort = laserLevel;
   #endif
-  PORTD = dataToPort;
+  
+  #ifdef INVERT_ANALOG_SIGNAL
+    PORTD = 255 - dataToPort;
+  #else
+    PORTD = dataToPort;
+  #endif
+  
   #ifdef TURBINE_PIN
     if(turbineEnable) turbine.writeMicroseconds(map(turbineLevel,0,255,1000,2000));
     else turbine.writeMicroseconds(1000);
   #endif
+  
 }
 
 
