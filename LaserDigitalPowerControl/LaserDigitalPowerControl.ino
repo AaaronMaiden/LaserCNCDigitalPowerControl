@@ -37,11 +37,11 @@ void setup(){
   pinMode(BUTTON_ADD,INPUT);
   pinMode(BUTTON_ENT,INPUT);
   pinMode(BUTTON_RMV,INPUT);
-  DDRD=B11111111;
-  laserLevel=EEPROM.read(10);
+  DDRD = B11111111;
+  laserLevel = EEPROM.read(10);
   #ifdef TURBINE_PIN
     turbine.attach(TURBINE_PIN);
-    turbineLevel=EEPROM.read(20);
+    turbineLevel = EEPROM.read(20);
   #endif
   
 }
@@ -64,7 +64,7 @@ void loop(){
   #else
     dataToPort = laserLevel;
   #endif
-  PORTD=dataToPort;
+  PORTD = dataToPort;
   
   #ifdef TURBINE_PIN
     turbine.writeMicroseconds(map(turbineLevel,0,255,1000,2000));
