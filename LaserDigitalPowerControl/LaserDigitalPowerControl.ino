@@ -26,9 +26,6 @@
 #define MIRROR_BITS
 
 
-
-
-
 byte laserLevel,laserLevelPrev;
 byte dataToPort;
 #ifdef TURBINE_PIN
@@ -39,58 +36,53 @@ byte dataToPort;
 LiquidCrystal_I2C LCD(0x27,16,2);
 
 
-
 void readButtons(void){
   if(!digitalRead(BUTTON_ADD)&&laserLevel<255){
     laserLevel++;
-    EEPROM.write(10,laserLevel);
     printLCD();
     delay(100);
   }
   if(!digitalRead(BUTTON_RMV)&&laserLevel>0){
     laserLevel--;
-    EEPROM.write(10,laserLevel);
     printLCD();
     delay(100);
   }
 }
 
 
-
 void writeLCD(void){
-  lcd.setCursor(13,0);
+  LCD.setCursor(13,0);
   if(laserLevel>=100){
-    lcd.print(laserLevel);
+    LCD.print(laserLevel);
   }
   else if(laserLevel>=10){
-    lcd.print(" ");
-    lcd.print(laserLevel);
+    LCD.print(" ");
+    LCD.print(laserLevel);
   }
   else{
-    lcd.print("  ");
-    lcd.print(laserLevel);
+    LCD.print("  ");
+    LCD.print(laserLevel);
   }
   #ifdef TURBINE_PIN
-    lcd.setCursor(13,1);
+    LCD.setCursor(13,1);
     if(turbineEnable){
       if(turbineLevel>=100){
-        lcd.print(turbineLevel);
+        LCD.print(turbineLevel);
       }
       else if(turbineLevel>=10){
-        lcd.print(" ");
-        lcd.print(turbineLevel);
+        LCD.print(" ");
+        LCD.print(turbineLevel);
       }
       else{
-        lcd.print("  ");
-        lcd.print(turbineLevel);
+        LCD.print("  ");
+        LCD.print(turbineLevel);
       }
     }
     else{
-      lcd.print("OFF");
+      LCD.print("OFF");
     }
   #endif
 }
-
 
 
 void writeActuators(void){
@@ -115,7 +107,6 @@ void writeActuators(void){
 }
 
 
-
 void setup(){
   pinMode(BUTTON_ADD,INPUT);
   pinMode(BUTTON_ENT,INPUT);
@@ -125,30 +116,48 @@ void setup(){
   #ifdef TURBINE_PIN
     turbine.attach(TURBINE_PIN);
     turbineLevel = EEPROM.read(20);
+    turbine.writeMicroseconds(1000);
   #endif
   LCD.init();
   LCD.backlight();
-  lcd.setCursor(0,0);
-  lcd.print(" LASER CONTROL  ");
-  lcd.setCursor(0,1);
-  lcd.print("LaCajaMakerSpace");
+  LCD.setCursor(0,0);
+  LCD.print(" LASER CONTROL  ");
+  LCD.setCursor(0,1);
+  LCD.print("LaCajaMakerSpace");
   delay(2500);
-  lcd.setCursor(0,0);
-  lcd.print("> LASER:     ---");
-  lcd.setCursor(0,1);
-  lcd.print("  TURBINE:   OFF");
+  LCD.setCursor(0,0);
+  LCD.print("> LASER:     ---");
+  LCD.setCursor(0,1);
+  #ifdef TURBINE_PIN
+    LCD.print("  TURBINE:   OFF");
+  #else
+    LCD.print("  TURBINE:   N-C");
+  #endif
   
 }
+
 
 void loop(){
   
   readButtons();
   
-  if( (laserLevel!=laserLevelPrev) || (turbineLevel!=turbineLevelPrev) || (turbineEnable!=turbineEnablePrev) ){
-    writeActuators();
-    laserLevelPrev=laserLevel;
-    turbineLevelPrev=turbineLevel;
-    turbineEnablePrev=turbineEnable;
-  }
+  
+  #ifdef TURBINE_PIN
+    if( (laserLevel!=laserLevelPrev) || (turbineLevel!=turbineLevelPrev) || (turbineEnable!=turbineEnablePrev) ){
+      writeActuators();
+      EEPROM.write(10,laserLevel);
+      EEPROM.write(20,turbineLevel);
+      laserLevelPrev=laserLevel;
+      turbineLevelPrev=turbineLevel;
+      turbineEnablePrev=turbineEnable;
+    }
+  #else
+    if( laserLevel!=laserLevelPrev ){
+      writeActuators();
+      EEPROM.write(10,laserLevel);
+      laserLevelPrev=laserLevel;
+    }
+  #endif
+  
   
 }
