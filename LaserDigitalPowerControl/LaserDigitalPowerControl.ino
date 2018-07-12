@@ -18,6 +18,7 @@
 #include <Wire.h> 
 #include <EEPROM.h>
 #include <Servo.h>
+#define POT_PIN       A0
 #define BUTTON_ADD    8
 #define BUTTON_ENT    9
 #define BUTTON_RMV    10
@@ -36,6 +37,13 @@ byte dataToPort;
 LiquidCrystal_I2C LCD(0x27,16,2);
 
 
+
+
+void readPotentiometer(void){
+  laserLevel=map(analogRead(POT_PIN),0,1023,0,255);
+}
+
+/*
 void readButtons(void){
   if(!digitalRead(BUTTON_ADD)&&laserLevel<255){
     laserLevel++;
@@ -48,7 +56,7 @@ void readButtons(void){
     delay(100);
   }
 }
-
+*/
 
 void writeLCD(void){
   LCD.setCursor(13,0);
@@ -139,8 +147,8 @@ void setup(){
 
 void loop(){
   
-  readButtons();
-  
+  //readButtons();
+  readPotentiometer();
   
   #ifdef TURBINE_PIN
     if( (laserLevel!=laserLevelPrev) || (turbineLevel!=turbineLevelPrev) || (turbineEnable!=turbineEnablePrev) ){
@@ -153,6 +161,7 @@ void loop(){
     }
   #else
     if( laserLevel!=laserLevelPrev ){
+      writeLCD();
       writeActuators();
       EEPROM.write(10,laserLevel);
       laserLevelPrev=laserLevel;
